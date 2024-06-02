@@ -48,7 +48,7 @@ const safetySettings = [
 
 async function getAIResponse(input, mentionedUser, retries = 3) {
   try {
-    const chatSession = model.startChat({
+    const chatSession = await model.startChat({
       generationConfig,
       safetySettings,
       history: [],
@@ -115,7 +115,7 @@ client.on("messageCreate", async (message) => {
   }
 
   // Check if the message starts with the command prefix
-  if (input.startsWith("!code")) {
+  if (input.startsWith("$")) {
     let commandInput = input.slice(6); // Remove the "!code " part
 
     // Check if the message mentions any user
@@ -141,11 +141,11 @@ client.on("messageCreate", async (message) => {
         message.author.toString()
       );
       console.log("Generated response:", response); // Log the generated response
-      loadingMessage.delete(); // Delete the loading message
-      message.channel.send(response);
+      await loadingMessage.delete(); // Delete the loading message
+      await message.channel.send(response);
     } catch (error) {
       console.error("Error generating response:", error);
-      loadingMessage.delete(); // Delete the loading message
+      if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
       message.channel.send(
         "Sorry, I encountered an error while processing your request."
       );
