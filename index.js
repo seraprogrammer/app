@@ -1,4 +1,3 @@
-require('dotenv').config(); // Load environment variables from .env file
 const { Client } = require('discord.js');
 const { GoogleGenerativeAI } = require('https://esm.run/@google/generative-ai');
 
