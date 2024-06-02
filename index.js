@@ -4,7 +4,7 @@ const http = require("http"); // Import the http library
 const server = http.createServer(app); // Create the server
 
 require("dotenv").config();
-const { Client, GatewayIntentBits, MessageMentions } = require("discord.js");
+const { Client, GatewayIntentBits } = require("discord.js");
 const {
   GoogleGenerativeAI,
   HarmCategory,
@@ -46,7 +46,7 @@ const safetySettings = [
   },
 ];
 
-async function getAIResponse(input, mentionedUser, retries = 3) {
+async function getAIResponse(input, mentionedUser, retries = 1) {
   try {
     const chatSession = await model.startChat({
       generationConfig,
@@ -100,22 +100,21 @@ client.on("messageCreate", async (message) => {
     input.includes("who made this bot") ||
     input.includes("who is the programmer")
   ) {
-    message.channel.send("Sera Programmer");
+    await message.channel.send("Sera Programmer");
     return;
   }
 
-  // Check for developer-related questions
   if (
     input.includes("sera") ||
     input.includes("sera programmer") ||
     input.includes("linkdin")
   ) {
-    message.channel.send("https://i.postimg.cc/cChBN7TP/resp.png");
+    await message.channel.send("https://i.postimg.cc/cChBN7TP/resp.png");
     return;
   }
 
   // Check if the message starts with the command prefix
-  if (input.startsWith("$")) {
+  if (input.startsWith("!code")) {
     let commandInput = input.slice(6); // Remove the "!code " part
 
     // Check if the message mentions any user
@@ -124,7 +123,7 @@ client.on("messageCreate", async (message) => {
       // Remove the mention from the input
       const mentionRegex = /<@!?\d+>/g;
       commandInput = commandInput.replace(mentionRegex, "");
-      message.channel.send(
+      await message.channel.send(
         `Hey there! ${mentionedUser}, Give me a try—I'm an AI code generator crafted by a skilled programmer named Sera. You can ask me any questions you have and learn from my responses. If there's anything you're curious about, feel free to ask right here! https://discord.com/channels/1246452465625202689/1246452466120392894`
       );
       return;
@@ -146,7 +145,7 @@ client.on("messageCreate", async (message) => {
     } catch (error) {
       console.error("Error generating response:", error);
       if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
-      message.channel.send(
+      await message.channel.send(
         "Sorry, I encountered an error while processing your request."
       );
     }
@@ -158,6 +157,8 @@ app.get("/", (req, res) => {
   res.send("Testing...");
 });
 
-server.listen(3000, () => {}); // Opening the 3000 port
+server.listen(3000, () => {
+  console.log("Server is running on port 3000");
+}); // Opening the 3000 port
 
 client.login(process.env.DISCORD_TOKEN);
