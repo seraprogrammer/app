@@ -1,7 +1,7 @@
-const express = require("express");
-const app = express();
-const http = require("http");
-const server = http.createServer(app);
+const express = require("express"); // Import the express library
+const app = express(); // Launch the express app
+const http = require("http"); // Import the http library
+const server = http.createServer(app); // Create the server
 
 const { Client, GatewayIntentBits } = require("discord.js");
 const {
@@ -10,6 +10,7 @@ const {
   HarmBlockThreshold,
 } = require("@google/generative-ai");
 
+// Initialize the Generative AI SDK
 const apiKey = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -18,8 +19,8 @@ const model = genAI.getGenerativeModel({
 });
 
 const generationConfig = {
-  temperature: 0.7,
-  topP: 0.8,
+  temperature: 1,
+  topP: 0.95,
   topK: 64,
   maxOutputTokens: 8192,
   responseMimeType: "text/plain",
@@ -44,34 +45,30 @@ const safetySettings = [
   },
 ];
 
-let chatSession;
-
-async function initializeChatSession() {
-  chatSession = await model.startChat({
-    generationConfig,
-    safetySettings,
-    history: [],
-  });
-}
-
-async function getAIResponse(input, mentionedUser, retries = 3, delay = 1000) {
+async function getAIResponse(input, mentionedUser, retries = 1) {
   try {
-    if (!chatSession) await initializeChatSession();
+    const chatSession = await model.startChat({
+      generationConfig,
+      safetySettings,
+      history: [],
+    });
+
     const result = await chatSession.sendMessage(input);
     const responseText = result.response.text();
+    // Replace `@user` placeholder with mentioned user's mention
     const responseWithMention = responseText.replace(/@user/g, mentionedUser);
     return responseWithMention;
   } catch (error) {
-    console.error("Error generating AI response:", error);
+    console.error("Error generating AI response:", error); // Log the error
     if (retries > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return getAIResponse(input, mentionedUser, retries - 1, delay * 2);
+      return getAIResponse(input, mentionedUser, retries - 1);
     } else {
       throw error;
     }
   }
 }
 
+// Initialize Discord Bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -87,13 +84,16 @@ client.once("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  const specificChannelId = "1246547457169428512";
+  // Replace with your specific channel ID
+  const specificChannelId = "1246452465646178309";
 
+  // Check if the message is in the specified channel
   if (message.channel.id !== specificChannelId) return;
 
   const input = message.content.toLowerCase();
-  console.log("Received message:", input);
+  console.log("Received message:", input); // Log the received message
 
+  // Check for developer-related questions
   if (
     input.includes("who is the developer") ||
     input.includes("who made this bot") ||
@@ -112,11 +112,14 @@ client.on("messageCreate", async (message) => {
     return;
   }
 
+  // Check if the message starts with the command prefix
   if (input.startsWith("!code")) {
-    let commandInput = input.slice(6).trim();
+    let commandInput = input.slice(6); // Remove the "!code " part
 
+    // Check if the message mentions any user
     const mentionedUser = message.mentions.users.first();
     if (mentionedUser) {
+      // Remove the mention from the input
       const mentionRegex = /<@!?\d+>/g;
       commandInput = commandInput.replace(mentionRegex, "");
       await message.channel.send(
@@ -127,7 +130,7 @@ client.on("messageCreate", async (message) => {
 
     let loadingMessage;
     try {
-      console.log("Generating AI response...");
+      console.log("Generating AI response..."); // Log the start of AI response generation
       loadingMessage = await message.channel.send(
         "Generating response, please wait..."
       );
@@ -135,12 +138,12 @@ client.on("messageCreate", async (message) => {
         commandInput,
         message.author.toString()
       );
-      console.log("Generated response:", response);
-      await loadingMessage.delete();
+      console.log("Generated response:", response); // Log the generated response
+      await loadingMessage.delete(); // Delete the loading message
       await message.channel.send(response);
     } catch (error) {
       console.error("Error generating response:", error);
-      if (loadingMessage) await loadingMessage.delete();
+      if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
       await message.channel.send(
         "Sorry, I encountered an error while processing your request."
       );
@@ -148,12 +151,13 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+/** Replying to request at '/' */
 app.get("/", (req, res) => {
   res.send("Testing...");
 });
 
 server.listen(3000, () => {
   console.log("Server is running on port 3000");
-});
+}); // Opening the 3000 port
 
 client.login(process.env.DISCORD_TOKEN);
