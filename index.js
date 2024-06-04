@@ -1,55 +1,164 @@
-/**
- * @Developer uoaio
- * @Github github.com/uo1428
- * @Tutorial youtube.com/watch?v=OIhM1btQctc
- */
+const express = require("express"); // Import the express library
+const app = express(); // Launch the express app
+const http = require("http"); // Import the http library
+const server = http.createServer(app); // Create the server
 
-const { GoogleGenerativeAI } = require("https://esm.run/@google/generative-ai");
+require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
+const {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} = require("@google/generative-ai");
 
-const MODEL = "gemini-pro";
-const API_KEY = process.env.API_KEY; // aistudio.google.com/app/
-const BOT_TOKEN = process.env.BOT_TOKEN; // discord.dev
-const CHANNEL_ID = process.env.CHANNEL_ID; // discord.com/app
+// Initialize the Generative AI SDK
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
 
-const ai = new GoogleGenerativeAI(API_KEY);
-const model = ai.getGenerativeModel({
-  model: MODEL,
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
 });
 
-const client = new Client({ intents: Object.keys(GatewayIntentBits) });
+const generationConfig = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
+  maxOutputTokens: 8192,
+  responseMimeType: "text/plain",
+};
 
-client.on("ready", () => console.log("Bot is ready!"));
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
+async function getAIResponse(input, mentionedUser, retries = 1) {
+  try {
+    const chatSession = await model.startChat({
+      generationConfig,
+      safetySettings,
+      history: [],
+    });
+
+    const result = await chatSession.sendMessage(input);
+    const responseText = result.response.text();
+    // Replace `@user` placeholder with mentioned user's mention
+    const responseWithMention = responseText.replace(/@user/g, mentionedUser);
+    return responseWithMention;
+  } catch (error) {
+    console.error("Error generating AI response:", error); // Log the error
+    if (retries > 0) {
+      return getAIResponse(input, mentionedUser, retries - 1);
+    } else {
+      throw error;
+    }
+  }
+}
+
+// Initialize Discord Bot
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+client.once("ready", () => {
+  console.log("Bot is online!");
+});
 
 client.on("messageCreate", async (message) => {
-  try {
-    if (
-      !message.content ||
-      message.author.bot ||
-      message.channelId !== CHANNEL_ID
-    )
-      return;
-    const { response } = await model.generateContent(message.cleanContent);
+  if (message.author.bot) return;
 
-    await message.reply({
-      content: response.text(),
-      allowedMentions: {
-        parse: ["everyone", "roles", "users"],
-      },
-    });
-  } catch (e) {
-    console.log(e);
+  // Replace with your specific channel ID
+  const specificChannelId = "1246547457169428512";
+
+  // Check if the message is in the specified channel
+  if (message.channel.id !== specificChannelId) return;
+
+  const input = message.content.toLowerCase();
+  console.log("Received message:", input); // Log the received message
+
+  // Check for developer-related questions
+  if (
+    input.includes("who is the developer") ||
+    input.includes("who made this bot") ||
+    input.includes("who is the programmer")
+  ) {
+    await message.channel.send("Sera Programmer");
+    return;
+  }
+
+  if (
+    input.includes("sera") ||
+    input.includes("sera programmer") ||
+    input.includes("linkdin")
+  ) {
+    await message.channel.send("https://i.postimg.cc/cChBN7TP/resp.png");
+    return;
+  }
+
+  // Check if the message starts with the command prefix
+  if (input.startsWith("!code")) {
+    let commandInput = input.slice(6); // Remove the "!code " part
+
+    // Check if the message mentions any user
+    const mentionedUser = message.mentions.users.first();
+    if (mentionedUser) {
+      // Remove the mention from the input
+      const mentionRegex = /<@!?\d+>/g;
+      commandInput = commandInput.replace(mentionRegex, "");
+      await message.channel.send(
+        `Hey there! ${mentionedUser}, Give me a try—I'm an AI code generator crafted by a skilled programmer named Sera. You can ask me any questions you have and learn from my responses. If there's anything you're curious about, feel free to ask right here! https://discord.com/channels/1246452465625202689/1246452466120392894`
+      );
+      return;
+    }
+
+    let loadingMessage;
+    try {
+      console.log("Generating AI response..."); // Log the start of AI response generation
+      loadingMessage = await message.channel.send(
+        "Generating response, please wait..."
+      );
+      const response = await getAIResponse(
+        commandInput,
+        message.author.toString()
+      );
+      console.log("Generated response:", response); // Log the generated response
+      await loadingMessage.delete(); // Delete the loading message
+      await message.channel.send(response);
+    } catch (error) {
+      console.error("Error generating response:", error);
+      if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
+      await message.channel.send(
+        "Sorry, I encountered an error while processing your request."
+      );
+    }
   }
 });
 
-client.login(BOT_TOKEN);
-
-const app = require("express")();
+/** Replying to request at '/' */
 app.get("/", (req, res) => {
-  res.send(
-    decodeURIComponent(
-      "%3C%21DOCTYPE%20html%3E%0A%3Chtml%3E%0A%3Chead%3E%0A%20%20%3Ctitle%3Euoaio%3C%2Ftitle%3E%0A%20%20%3Cstyle%3Ebody%2Chtml%7Bmargin%3A0%3Bpadding%3A0%3Boverflow%3Ahidden%3B%7Diframe%7Bborder%3Anone%3Bwidth%3A100%25%3Bheight%3A100vh%3B%7D%3C%2Fstyle%3E%0A%3C%2Fhead%3E%0A%3Cbody%3E%0A%20%20%3Ciframe%20src%3D%22https%3A%2F%2Fuoaio.vercel.app%22%3E%3C%2Fiframe%3E%0A%3C%2Fbody%3E%0A%3C%2Fhtml%3E",
-    ),
-  );
+  res.send("Testing...");
 });
-app.listen(3000);
+
+server.listen(3000, () => {
+  console.log("Server is running on port 3000");
+}); // Opening the 3000 port
+
+client.login(process.env.DISCORD_TOKEN);
