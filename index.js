@@ -54,7 +54,7 @@ async function initializeChatSession() {
   });
 }
 
-async function getAIResponse(input, mentionedUser, retries = 3) {
+async function getAIResponse(input, mentionedUser, retries = 3, delay = 1000) {
   try {
     if (!chatSession) await initializeChatSession();
     const result = await chatSession.sendMessage(input);
@@ -64,7 +64,8 @@ async function getAIResponse(input, mentionedUser, retries = 3) {
   } catch (error) {
     console.error("Error generating AI response:", error);
     if (retries > 0) {
-      return getAIResponse(input, mentionedUser, retries - 1);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return getAIResponse(input, mentionedUser, retries - 1, delay * 2);
     } else {
       throw error;
     }
@@ -86,7 +87,7 @@ client.once("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  const specificChannelId = "1247500915389497399";
+  const specificChannelId = "1246547457169428512";
 
   if (message.channel.id !== specificChannelId) return;
 
