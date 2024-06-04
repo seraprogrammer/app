@@ -66,7 +66,7 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   // Replace with your specific channel ID
-  const specificChannelId = "1246547457169428512";
+  const specificChannelId = "1246452465646178309";
 
   // Check if the message is in the specified channel
   if (message.channel.id !== specificChannelId) return;
