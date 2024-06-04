@@ -112,42 +112,39 @@ client.on("messageCreate", async (message) => {
     return;
   }
 
-  // Check if the message starts with the command prefix
-  if (input.startsWith("!code")) {
-    let commandInput = input.slice(6); // Remove the "!code " part
+  let commandInput = input;
 
-    // Check if the message mentions any user
-    const mentionedUser = message.mentions.users.first();
-    if (mentionedUser) {
-      // Remove the mention from the input
-      const mentionRegex = /<@!?\d+>/g;
-      commandInput = commandInput.replace(mentionRegex, "");
-      await message.channel.send(
-        `Hey there! ${mentionedUser}, Give me a try—I'm an AI code generator crafted by a skilled programmer named Sera. You can ask me any questions you have and learn from my responses. If there's anything you're curious about, feel free to ask right here! https://discord.com/channels/1246452465625202689/1246452466120392894`
-      );
-      return;
-    }
+  // Check if the message mentions any user
+  const mentionedUser = message.mentions.users.first();
+  if (mentionedUser) {
+    // Remove the mention from the input
+    const mentionRegex = /<@!?\d+>/g;
+    commandInput = commandInput.replace(mentionRegex, "");
+    await message.channel.send(
+      `Hey there! ${mentionedUser}, Give me a try—I'm an AI code generator crafted by a skilled programmer named Sera. You can ask me any questions you have and learn from my responses. If there's anything you're curious about, feel free to ask right here! https://discord.com/channels/1246452465625202689/1246452466120392894`
+    );
+    return;
+  }
 
-    let loadingMessage;
-    try {
-      console.log("Generating AI response..."); // Log the start of AI response generation
-      loadingMessage = await message.channel.send(
-        "Generating response, please wait..."
-      );
-      const response = await getAIResponse(
-        commandInput,
-        message.author.toString()
-      );
-      console.log("Generated response:", response); // Log the generated response
-      await loadingMessage.delete(); // Delete the loading message
-      await message.channel.send(response);
-    } catch (error) {
-      console.error("Error generating response:", error);
-      if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
-      await message.channel.send(
-        "Sorry, I encountered an error while processing your request."
-      );
-    }
+  let loadingMessage;
+  try {
+    console.log("Generating AI response..."); // Log the start of AI response generation
+    loadingMessage = await message.channel.send(
+      "Generating response, please wait..."
+    );
+    const response = await getAIResponse(
+      commandInput,
+      message.author.toString()
+    );
+    console.log("Generated response:", response); // Log the generated response
+    await loadingMessage.delete(); // Delete the loading message
+    await message.channel.send(response);
+  } catch (error) {
+    console.error("Error generating response:", error);
+    if (loadingMessage) await loadingMessage.delete(); // Delete the loading message
+    await message.channel.send(
+      "Sorry, I encountered an error while processing your request."
+    );
   }
 });
 
