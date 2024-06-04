@@ -3,7 +3,6 @@ const app = express();
 const http = require("http");
 const server = http.createServer(app);
 
-require("dotenv").config();
 const { Client, GatewayIntentBits } = require("discord.js");
 const {
   GoogleGenerativeAI,
@@ -87,7 +86,7 @@ client.once("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  const specificChannelId = "1246547457169428512";
+  const specificChannelId = "1247500915389497399";
 
   if (message.channel.id !== specificChannelId) return;
 
